@@ -3,6 +3,7 @@
 import os
 import sys
 import shutil
+from urllib import request
 
 import shotgun_api3
 from PySide2.QtWidgets import *
@@ -36,10 +37,9 @@ class DownloadVideo:
 
     def run_download(self):
         for one_filter in self.filter:
-            self.result_file = self.sg.find_one('Version', [one_filter], ['code', 'sg_path_to_movie', 'sg_uploaded_movie'])
+            self.result_file = self.sg.find_one('Version', [one_filter], ['code', 'image', 'sg_path_to_movie', 'sg_uploaded_movie'])
             # print(self.result_file)
-            self.path_to_movie = self.result_file['sg_path_to_movie']
-            # self.local_file_path = "/westworld/show/%s/product" % self.sa.project['name']          
+            # self.local_file_path = "/westworld/show/%s/product" % self.sa.project['name']  
             self.file_path=self.download_path+"/%s" % self.result_file['code']
 
             # if self.result_file['sg_uploaded_movie'] == None:
@@ -72,28 +72,41 @@ class DownloadVideo:
             else :
                 self.download_attachment()
 
-            self.path_to_movie = None
+            if self.result_file['image'] :
+                self.download_thumnail_image()
+            else:
+                print(self.result_file['code'], ', No image...')
+
             self.file_path = None
             self.result_file = None
 
     def download_attachment(self):
         # if not os.path.isdir(self.local_file_path):
         #     os.makedirs(self.local_file_path)
-        if not os.path.isfile(self.file_path):
+        file_format = os.path.splitext(self.result_file['sg_uploaded_movie']['name'])[1]
+        if not os.path.isfile(self.file_path + file_format):
             self.sg.download_attachment(self.result_file['sg_uploaded_movie'], 
-                                        file_path=self.file_path)
+                                        file_path = self.file_path + file_format)
             print('download_attachment == ', self.result_file['code'])
         else:
-            print('file exists')
+            print('video exists')
 
     def download_file_from_path(self):
         # if not os.path.isdir(self.local_file_path):
         #     os.makedirs(self.local_file_path)
-        if not os.path.isfile(self.file_path):
-            shutil.copyfile(self.result_file['sg_path_to_movie'], self.file_path)
+        file_format = os.path.splitext(self.result_file['sg_path_to_movie'])[1]
+        if not os.path.isfile(self.file_path + file_format):
+            shutil.copyfile(self.result_file['sg_path_to_movie'], self.file_path + file_format)
             print('download_file_from_path ==', self.result_file['code'])
         else:
-            print('file exists')
+            print('video exists')
+    
+    def download_thumnail_image(self):
+        if not os.path.isfile(self.file_path+'.jpg'):
+            request.urlretrieve(self.result_file['image'], self.file_path+".jpg")
+            print('download_thumbnail == ', self.result_file['code'])
+        else:
+            print('image exists')
 
 # ----------------------------------------------
 # Main Block
